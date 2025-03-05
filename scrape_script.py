@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 # Specify yoga poses (using the original Hindi names)
 yoga_poses = [
     "ताड़ासन", "त्रिकोणासन", "दुर्वासन", "अर्धचंद्रासन",
-    "उष्ट्रासन", "धनुरासन", "भुजंगासन", "मौलासन",
+    "उष्ट्रासन", "धनुरासन", "भुजंगासन",
     "हलासन", "सेतुबंधासन"
 ]
 
@@ -26,7 +26,7 @@ chrome_options.add_argument("--disable-dev-shm-usage")
 driver = webdriver.Chrome(options=chrome_options)
 
 def scrape_images(pose_name, num_images=200):
-    search_query = pose_name + " yoga pose"
+    search_query = pose_name + " yoga pose person home background -thumbnail -video"
     save_dir = os.path.join(dataset_dir, pose_name)
     os.makedirs(save_dir, exist_ok=True)
 
