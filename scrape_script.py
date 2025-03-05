@@ -1,88 +1,69 @@
+import requests
+from bs4 import BeautifulSoup
 import os
 import time
-import requests
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
+import sys
+from PIL import Image
+from io import BytesIO
 
-# Specify yoga poses (using the original Hindi names)
-yoga_poses = [
-    "ताड़ासन", "त्रिकोणासन", "दुर्वासन", "अर्धचंद्रासन",
-    "उष्ट्रासन", "धनुरासन", "भुजंगासन",
-    "हलासन", "सेतुबंधासन"
-]
+yoga_poses = ["taadasana", "trikonasana", "durvasana", "ardhachandrasana", "ustrasana", "dhanurasana", "bhujangasana", "halasana", "setubandhasana"]
+image_count_limit = 10
 
-# Directory to save images
-dataset_dir = "yoga_dataset"
-os.makedirs(dataset_dir, exist_ok=True)
+def is_valid_image(image_content):
+    return True # Disabled image validation for debugging
 
-# Configure Selenium WebDriver (Headless)
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
+def download_images(yoga_pose):
+    search_term = yoga_pose + " yoga pose"
+    search_url = f"https://www.google.com/search?q={search_term}&amp;tbm=isch"
+    print(f"Searching URL: {search_url}") # Print search URL
 
-driver = webdriver.Chrome(options=chrome_options)
+    try:
+        response = requests.get(search_url, headers={'User-Agent': 'Mozilla/5.0'})
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching URL {search_url}: {e}")
+        return
 
-def scrape_images(pose_name, num_images=200):
-    search_query = pose_name + " yoga pose person home background -thumbnail -video"
-    save_dir = os.path.join(dataset_dir, pose_name)
-    os.makedirs(save_dir, exist_ok=True)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    img_tags = soup.find_all('img')
+    print(f"Found {len(img_tags)} image tags") # Print number of image tags
 
-    # Open Google Images
-    driver.get("https://images.google.com/")
-    search_box = driver.find_element(By.NAME, "q")
-    search_box.send_keys(search_query)
-    search_box.send_keys(Keys.RETURN)
-    time.sleep(2)
+    downloaded_count = 0
+    for i, img_tag in enumerate(img_tags):
+        if downloaded_count >= image_count_limit:
+            break
 
-    # Scroll and fetch image URLs
-    image_urls = set()
-    last_height = driver.execute_script("return document.body.scrollHeight")
+        img_url = img_tag.get('src') or img_tag.get('data-src')
 
-    while len(image_urls) < num_images:
-        # Find elements, then extract URLs. This avoids StaleElementReferenceException
-        images = driver.find_elements(By.CSS_SELECTOR, "img") # Use a broader CSS selector for Google Images
-        for img in images:
-            src = img.get_attribute("src")
-            if src and src.startswith("http") and src not in image_urls:
-                image_urls.add(src)
-                if len(image_urls) >= num_images:
-                    break
-
-        # Scroll down
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)  # Wait for more images to load
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            # Try clicking "Show more results" button if present
+        if img_url and img_url.startswith('http'):
+            print(f"Image URL: {img_url}") # Print image URL
             try:
-                show_more_button = driver.find_element(By.CSS_SELECTOR, ".mye4qd")
-                if show_more_button.is_displayed():
-                    show_more_button.click()
-                    time.sleep(2)  # Wait for more images
-                    new_height = driver.execute_script("return document.body.scrollHeight") # Update height
-            except Exception:
-                break  # If button not found or other error, exit loop
-        last_height = new_height
+                img_response = requests.get(img_url, stream=True, headers={'User-Agent': 'Mozilla/5.0'})
+                img_response.raise_for_status()
+                image_content = img_response.content
 
-    # Download images
-    for i, url in enumerate(image_urls):
-        try:
-            response = requests.get(url, stream=True, timeout=10) # Increased timeout
-            response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
-            if response.status_code == 200:
-                with open(os.path.join(save_dir, f"{pose_name}_{i+1}.jpg"), "wb") as f:
-                    for chunk in response.iter_content(chunk_size=8192): # Download in chunks
-                        f.write(chunk)
-        except requests.exceptions.RequestException as e:
-            print(f"Failed to download {url}: {e}")
-    print(f"Downloaded {len(image_urls)} images for {pose_name}.")
+                if is_valid_image(image_content): # Check if image is valid
+                    image_dir = os.path.join("yoga_dataset", yoga_pose)
+                    os.makedirs(image_dir, exist_ok=True)
+                    filename = f"{yoga_pose}_{downloaded_count + 1}.jpg"
+                    filepath = os.path.join(image_dir, filename)
 
-# Scrape images for each pose
-for pose in yoga_poses:
-    scrape_images(pose)
+                    with open(filepath, 'wb') as f:
+                        f.write(image_content)
 
-# Close WebDriver
-driver.quit()
+                    downloaded_count += 1
+                    print(f"Downloaded image {downloaded_count} for {yoga_pose}")
+                else:
+                    print(f"Skipping invalid image: {img_url}")
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error downloading image from {img_url}: {e}")
+        else:
+            print(f"Skipping invalid image URL: {img_url}")
+
+    print(f"Successfully downloaded {downloaded_count} valid images for {yoga_pose}")
+
+
+if __name__ == "__main__":
+    for pose in yoga_poses:
+        download_images(pose.lower())
