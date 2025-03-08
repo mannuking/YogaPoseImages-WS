@@ -17,7 +17,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("dataset_filtering.log"),
+        logging.FileHandler("dataset_filtering.log", encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -326,6 +326,8 @@ def filter_image(args):
             is_correct_pose, confidence = classify_yoga_pose(img_np, pose_classifier, dir_name)
             if not is_correct_pose or confidence < POSE_CONFIDENCE_THRESHOLD:
                 result['reason'] = f"Incorrect pose or low confidence: {confidence:.2f}"
+                # Move the image to the failure reason directory
+                move_failed_image(input_path, output_dir, result['reason'])
                 return result
                 
             # If all checks pass, copy the image to the output directory
@@ -342,6 +344,25 @@ def filter_image(args):
     except Exception as e:
         result['reason'] = f"Error processing image: {str(e)}"
         return result
+
+def move_failed_image(input_path, output_dir, reason):
+    """
+    Move a failed image to a subfolder based on the failure reason.
+    """
+    try:
+        # Sanitize the failure reason to create a valid directory name
+        safe_reason = "".join(c if c.isalnum() else "_" for c in reason)
+        
+        # Create the failure reason directory
+        failure_dir = os.path.join(output_dir, safe_reason)
+        os.makedirs(failure_dir, exist_ok=True)
+        
+        # Move the image to the failure reason directory
+        file_name = os.path.basename(input_path)
+        output_path = os.path.join(failure_dir, file_name)
+        shutil.move(input_path, output_path)
+    except Exception as e:
+        logging.error(f"Error moving image: {e}")
 
 def filter_dataset(input_dir, output_dir, num_processes=None):
     """
@@ -378,6 +399,13 @@ def filter_dataset(input_dir, output_dir, num_processes=None):
     # Analyze results
     passed = [r for r in results if r['passed']]
     failed = [r for r in results if not r['passed']]
+    
+    # Move failed images to subfolders
+    for r in failed:
+        try:
+            move_failed_image(r['path'], output_dir, r['reason'])
+        except Exception as e:
+            logging.error(f"Error moving image {r['path']}: {e}")
     
     # Count failure reasons
     failure_reasons = Counter([r['reason'] for r in failed])
