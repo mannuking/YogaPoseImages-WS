@@ -7,11 +7,27 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 
 # Specify yoga poses (using the original Hindi names)
-yoga_poses = [
+yoga_poses_hindi = [
     "ताड़ासन", "त्रिकोणासन", "दुर्वासन", "अर्धचंद्रासन",
     "उष्ट्रासन", "धनुरासन", "भुजंगासन",
     "हलासन", "सेतुबंधासन"
 ]
+
+yoga_poses_english_hindi_map = {
+    "Tadasana (Mountain Pose)": "ताड़ासन",
+    "Trikonasana (Triangle Pose)": "त्रिकोणासन",
+    "Durvasana (Durva Grass Pose)": "दुर्वासन",
+    "Ardha Chandrasana (Half Moon Pose)": "अर्धचंद्रासन",
+    "Ustrasana (Camel Pose)": "उष्ट्रासन",
+    "Dhanurasana (Bow Pose)": "धनुरासन",
+    "Bhujangasana (Cobra Pose)": "भुजंगासन",
+    "Maulasana (Garland Pose)": "मौलासन",
+    "Halasana (Plow Pose)": "हलासन",
+    "Setu Bandhasana (Bridge Pose)": "सेतुबंधासन"
+}
+
+yoga_poses_english = list(yoga_poses_english_hindi_map.keys())
+
 
 # Directory to save images
 dataset_dir = "yoga_dataset"
@@ -25,10 +41,11 @@ chrome_options.add_argument("--disable-dev-shm-usage")
 
 driver = webdriver.Chrome(options=chrome_options)
 
-def scrape_images(pose_name, num_images=200):
-    search_query = pose_name + " yoga pose person home background -thumbnail -video"
-    save_dir = os.path.join(dataset_dir, pose_name)
-    os.makedirs(save_dir, exist_ok=True)
+def scrape_images(pose_name_english, pose_name_hindi, num_images=200):
+    search_query = pose_name_english + " yoga pose person home background -thumbnail -video"
+    original_dir = os.path.join(dataset_dir, pose_name_hindi, "original")
+    os.makedirs(original_dir, exist_ok=True)
+    save_dir = original_dir
 
     # Open Google Images
     driver.get("https://images.google.com/")
@@ -73,16 +90,16 @@ def scrape_images(pose_name, num_images=200):
             response = requests.get(url, stream=True, timeout=10) # Increased timeout
             response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
             if response.status_code == 200:
-                with open(os.path.join(save_dir, f"{pose_name}_{i+1}.jpg"), "wb") as f:
+                with open(os.path.join(save_dir, f"{pose_name_hindi}_{i+1}.jpg"), "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192): # Download in chunks
                         f.write(chunk)
         except requests.exceptions.RequestException as e:
             print(f"Failed to download {url}: {e}")
-    print(f"Downloaded {len(image_urls)} images for {pose_name}.")
+    print(f"Downloaded {len(image_urls)} images for {pose_name_english}.")
 
 # Scrape images for each pose
-for pose in yoga_poses:
-    scrape_images(pose)
+for pose_english, pose_hindi in yoga_poses_english_hindi_map.items():
+    scrape_images(pose_english, pose_hindi)
 
 # Close WebDriver
 driver.quit()
