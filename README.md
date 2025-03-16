@@ -1,109 +1,149 @@
 # Yoga Pose Image Dataset Scraper
 
-This project creates a dataset of yoga pose images by scraping Google Images. The dataset can be used to train an AI model for yoga pose detection and correction.
+This project creates a dataset of yoga pose images by scraping Google Images using Scrapy and Selenium. The dataset can be used to train an AI model for yoga pose detection and correction.
 
 ## Project Structure
 
--   `scrape_script.py`: Python script to scrape images from Google Images.
--   `Image_Preprocessing.py`: Python script to preprocess the downloaded images (resize, convert to JPEG).
--   `verify_Dataset.py`: Python script to verify the integrity of the downloaded images.
--   `requirements.txt`: List of required Python packages.
--   `yoga_dataset/`: Directory where the scraped images will be saved (created by `scrape_script.py`).
--   `processed_test_images/`: Directory where processed images will be saved (created by `Image_Preprocessing.py`).
+- `yoga_scraper/`: Scrapy project directory
+  - `yoga_scraper/spiders/`: Directory containing Scrapy spiders
+    - `yoga_pose_spider.py`: Basic Scrapy spider for scraping yoga pose images
+    - `selenium_yoga_spider.py`: Advanced Scrapy spider using Selenium for better image extraction
+  - `yoga_scraper/items.py`: Definition of the YogaPoseImage item
+  - `yoga_scraper/pipelines.py`: Custom image pipeline for processing and storing images
+  - `yoga_scraper/settings.py`: Scrapy project settings
+- `run_scraper.py`: Script to run the Scrapy spider
+- `preprocess_images.py`: Script to preprocess the downloaded images
+- `verify_dataset.py`: Script to verify the integrity of the dataset
+- `main.py`: Main script to run the entire pipeline
+- `requirements.txt`: List of required Python packages
+- `yoga_dataset/`: Directory where the scraped images will be saved
+- `processed_images/`: Directory where processed images will be saved
+
+## Yoga Poses
+
+The scraper is configured to download images for the following yoga poses:
+
+1. Tadasana (Mountain Pose) - ताड़ासन
+2. Trikonasana (Triangle Pose) - त्रिकोणासन
+3. Durvasana (Durva Grass Pose) - दुर्वासन
+4. Ardha Chandrasana (Half Moon Pose) - अर्धचंद्रासन
+5. Ustrasana (Camel Pose) - उष्ट्रासन
+6. Dhanurasana (Bow Pose) - धनुरासन
+7. Bhujangasana (Cobra Pose) - भुजंगासन
+8. Vrksasana (Tree Pose) - वृक्षासन
+9. Halasana (Plow Pose) - हलासन
+10. Setu Bandhasana (Bridge Pose) - सेतुबंधासन
+11. Akarna Dhanurasana (Shooting Bow Pose) - आकर्ण धनुरासन
+12. Gomukhasana (Cow Face Pose) - गोमुखासन
 
 ## Setup
 
-1.  **Clone the repository:**
+1. **Clone the repository:**
 
-    ```bash
-    git clone <repository_url>
-    cd <repository_name>
-    ```
+   ```bash
+   git clone <repository_url>
+   cd <repository_name>
+   ```
 
-2.  **Create a virtual environment:**
+2. **Create a virtual environment:**
 
-    ```bash
-    python3 -m venv .venv
-    ```
+   ```bash
+   python -m venv venv
+   ```
 
-3.  **Activate the virtual environment:**
+3. **Activate the virtual environment:**
 
-    *   **macOS/Linux:**
+   - **Windows:**
 
-        ```bash
-        source .venv/bin/activate
-        ```
+     ```bash
+     venv\Scripts\activate
+     ```
 
-    *   **Windows:**
+   - **macOS/Linux:**
 
-        ```bash
-        .venv\Scripts\activate
-        ```
+     ```bash
+     source venv/bin/activate
+     ```
 
-4.  **Install dependencies:**
+4. **Install dependencies:**
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-5.  **Download ChromeDriver:**
+5. **Install Chrome and ChromeDriver:**
 
-    *   Download the appropriate ChromeDriver version for your Chrome browser from [https://chromedriver.chromium.org/downloads](https://chromedriver.chromium.org/downloads).
-    *   Place the `chromedriver` executable in the project directory or in a location that is in your system's PATH. If you place it somewhere else, update the `CHROME_DRIVER_PATH` variable in `scrape_script.py`.
+   - Download and install Chrome browser if you don't have it already
+   - The script will automatically download the appropriate ChromeDriver version using webdriver-manager
 
 ## Usage
 
-1.  **Scrape Images:**
+### Running the Entire Pipeline
 
-    ```bash
-    python scrape_script.py
-    ```
+To run the entire pipeline (scraping, preprocessing, verification, and visualization):
 
-    This will create the `yoga_dataset` directory and download images of 10 yoga poses into subdirectories named after each pose.
+```bash
+cd yoga_scraper
+python main.py
+```
 
-2.  **Preprocess Images:**
+### Running Individual Steps
 
-    ```bash
-    python Image_Preprocessing.py yoga_dataset processed_test_images
-    ```
+You can also run individual steps of the pipeline:
 
-    This will resize the images to 224x224 pixels, convert them to JPEG format, and save them in the `processed_test_images` directory.
+1. **Scrape Images:**
 
-3.  **Verify Dataset:**
+   ```bash
+   python main.py --scrape
+   ```
 
-    ```bash
-    python verify_Dataset.py
-    ```
+   This will create the `yoga_dataset` directory and download images of yoga poses into subdirectories.
 
-    This will check the integrity of the images in the `processed_test_images` directory and report any corrupted files.
+2. **Preprocess Images:**
 
-4.  **Optional: Zip the Dataset:**
+   ```bash
+   python main.py --preprocess
+   ```
 
-    To create a zip archive of the processed dataset:
+   This will resize the images to 224x224 pixels, convert them to JPEG format, and save them in the `processed_images` directory.
 
-    *   **macOS/Linux:**
+3. **Verify Dataset:**
 
-        ```bash
-        zip -r yoga_pose_images.zip processed_test_images
-        ```
+   ```bash
+   python main.py --verify
+   ```
 
-    *   **Windows (PowerShell):**
+   This will check the integrity of the images in the `processed_images` directory and report any corrupted files.
 
-        ```powershell
-        Compress-Archive -Path processed_test_images -DestinationPath yoga_pose_images.zip
-        ```
+4. **Visualize Dataset:**
+
+   ```bash
+   python main.py --visualize
+   ```
+
+   This will create a visualization of the dataset, showing random samples from each yoga pose.
+
+### Advanced Options
+
+You can customize the pipeline with additional command-line options:
+
+```bash
+python main.py --input-dir yoga_dataset --output-dir processed_images --target-width 224 --target-height 224 --quality 90 --num-workers 4
+```
+
+Run `python main.py --help` to see all available options.
 
 ## Troubleshooting
 
-*   **`WebDriverException: 'chromedriver' executable needs to be in PATH.`:** Make sure you have downloaded ChromeDriver and placed it in the correct location (project directory or a directory in your PATH). Update the `CHROME_DRIVER_PATH` in `scrape_script.py` if necessary.
-*   **`requests.exceptions.ConnectionError` or `requests.exceptions.Timeout`:** Check your internet connection. These errors can occur due to network issues.
-*   **No images downloaded:** The structure of Google Images might have changed. You may need to update the CSS selectors in `scrape_script.py` (e.g., `img.rg_i`, `.mye4qd`). Use your browser's developer tools to inspect the Google Images page and find the correct selectors.
-*   **`ModuleNotFoundError: No module named '...'`:** Make sure you have activated your virtual environment and installed the required packages using `pip install -r requirements.txt`.
+- **Selenium WebDriver issues:** If you encounter issues with Selenium, make sure you have Chrome installed and that the webdriver-manager package is correctly installed.
+- **Network errors:** If you experience network errors during scraping, try increasing the `DOWNLOAD_DELAY` in `yoga_scraper/yoga_scraper/settings.py`.
+- **Image processing errors:** If you encounter errors during image preprocessing, check that the Pillow package is correctly installed and that the input images are valid.
+- **Google blocking requests:** Google may block requests if too many are made in a short period. Try increasing the `DOWNLOAD_DELAY` and using a different user agent.
 
 ## Notes
 
-*   The scraping script uses Selenium with ChromeDriver in headless mode.
-*   The number of images downloaded per pose can be adjusted in `scrape_script.py` (default is 100).
-*   The image preprocessing script resizes images to 224x224 and converts them to JPEG with a quality of 90. You can change these parameters in `Image_Preprocessing.py`.
-*   The `verify_Dataset.py` script performs a basic integrity check on the images.
-*   This project is intended for educational and personal use. Be mindful of Google Images' terms of service when scraping.
+- The scraper is configured to download between 200 and 500 images per yoga pose.
+- The image preprocessing script resizes images to 224x224 pixels and converts them to JPEG with a quality of 90.
+- The verification script checks the integrity of the images and reports any corrupted files.
+- The visualization script creates a visual representation of the dataset, showing random samples from each yoga pose.
+- This project is intended for educational and personal use. Be mindful of Google Images' terms of service when scraping.
