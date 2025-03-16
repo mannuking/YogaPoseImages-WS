@@ -65,16 +65,58 @@ The scraper is configured to download images for the following yoga poses:
      source venv/bin/activate
      ```
 
-4. **Install dependencies:**
+4. **Run the setup script:**
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+   - **Windows:**
 
-5. **Install Chrome and ChromeDriver:**
+     ```bash
+     setup.bat
+     ```
 
-   - Download and install Chrome browser if you don't have it already
-   - The script will automatically download the appropriate ChromeDriver version using webdriver-manager
+   - **macOS/Linux:**
+
+     ```bash
+     ./setup.sh
+     ```
+
+   This will:
+   - Install required dependencies
+   - Check for ChromeDriver
+   - Download ChromeDriver if needed
+
+5. **Manual Setup (if the setup script doesn't work):**
+
+   - Install dependencies:
+
+     ```bash
+     pip install -r requirements.txt
+     ```
+
+   - Download ChromeDriver manually:
+
+     ```bash
+     cd yoga_scraper
+     python download_chromedriver.py
+     ```
+
+## ChromeDriver Setup
+
+The scraper uses Selenium with ChromeDriver to interact with Google Images. There are two ways to set up ChromeDriver:
+
+1. **Automatic download using webdriver-manager:**
+   - This is the default method
+   - Requires Chrome browser to be installed
+   - May fail if Chrome version cannot be detected
+
+2. **Manual download:**
+   - Run `download_chromedriver.bat` (Windows) or `python yoga_scraper/download_chromedriver.py` (macOS/Linux)
+   - This will download the appropriate ChromeDriver version for your Chrome browser
+   - The ChromeDriver executable will be placed in the project directory
+
+If you encounter issues with ChromeDriver, you can:
+- Set the `CHROMEDRIVER_PATH` environment variable to the path of your ChromeDriver executable
+- Move the ChromeDriver executable to the `yoga_scraper` directory
+- Download ChromeDriver manually from https://chromedriver.chromium.org/downloads
 
 ## Usage
 

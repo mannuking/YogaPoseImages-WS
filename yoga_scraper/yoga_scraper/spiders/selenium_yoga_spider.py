@@ -8,11 +8,16 @@ from urllib.parse import urlencode, quote_plus
 from scrapy.http import Request
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
-from webdriver_manager.chrome import ChromeDriverManager
+try:
+    from webdriver_manager.chrome import ChromeDriverManager
+    WEBDRIVER_MANAGER_AVAILABLE = True
+except Exception:
+    WEBDRIVER_MANAGER_AVAILABLE = False
 from ..items import YogaPoseImage
 
 class SeleniumYogaPoseSpider(scrapy.Spider):
@@ -55,10 +60,43 @@ class SeleniumYogaPoseSpider(scrapy.Spider):
         chrome_options.add_argument(f"user-agent={self.settings.get('USER_AGENT')}")
         
         # Initialize Chrome driver
-        self.driver = webdriver.Chrome(
-            ChromeDriverManager().install(),
-            options=chrome_options
-        )
+        try:
+            if WEBDRIVER_MANAGER_AVAILABLE:
+                # Try using webdriver_manager with explicit version
+                self.driver = webdriver.Chrome(
+                    ChromeDriverManager(version="114.0.5735.90").install(),
+                    options=chrome_options
+                )
+            else:
+                # Fallback to direct ChromeDriver path
+                # Try to find ChromeDriver in common locations
+                chromedriver_paths = [
+                    "./chromedriver.exe",  # Current directory
+                    "./chromedriver",
+                    "chromedriver.exe",
+                    "chromedriver",
+                ]
+                
+                # Check if CHROMEDRIVER_PATH environment variable is set
+                if "CHROMEDRIVER_PATH" in os.environ:
+                    chromedriver_paths.insert(0, os.environ["CHROMEDRIVER_PATH"])
+                
+                # Try each path
+                for path in chromedriver_paths:
+                    if os.path.exists(path):
+                        self.logger.info(f"Using ChromeDriver at: {path}")
+                        service = Service(executable_path=path)
+                        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                        break
+                else:
+                    # If no ChromeDriver found, try without specifying path (system PATH)
+                    self.logger.warning("ChromeDriver not found in common locations. Trying system PATH.")
+                    self.driver = webdriver.Chrome(options=chrome_options)
+        except Exception as e:
+            self.logger.error(f"Error initializing Chrome driver: {e}")
+            self.logger.info("Please download ChromeDriver manually from https://chromedriver.chromium.org/downloads")
+            self.logger.info("and place it in the project directory or add it to your system PATH.")
+            raise
         
         # Create a directory to store pose counts
         self.counts_dir = os.path.join(self.settings.get('IMAGES_STORE', 'yoga_dataset'), 'counts')

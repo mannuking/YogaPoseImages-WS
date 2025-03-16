@@ -3,7 +3,7 @@ import sys
 import time
 import logging
 import argparse
-from run_scraper import run_scraper
+from run_scraper import run_scraper, check_chromedriver
 from preprocess_images import preprocess_images
 from verify_dataset import verify_dataset, count_images_by_pose, visualize_dataset
 
@@ -25,6 +25,7 @@ def parse_arguments():
     parser.add_argument("--preprocess", action="store_true", help="Preprocess the images")
     parser.add_argument("--verify", action="store_true", help="Verify the dataset")
     parser.add_argument("--visualize", action="store_true", help="Visualize the dataset")
+    parser.add_argument("--check-chromedriver", action="store_true", help="Check if ChromeDriver is available")
     
     parser.add_argument("--input-dir", default="yoga_dataset", help="Input directory for preprocessing")
     parser.add_argument("--output-dir", default="processed_images", help="Output directory for preprocessing")
@@ -42,17 +43,31 @@ def main():
     args = parse_arguments()
     
     # If no actions are specified, run the entire pipeline
-    if not (args.scrape or args.preprocess or args.verify or args.visualize):
+    if not (args.scrape or args.preprocess or args.verify or args.visualize or args.check_chromedriver):
         args.scrape = True
         args.preprocess = True
         args.verify = True
         args.visualize = True
     
+    # Check if ChromeDriver is available
+    if args.check_chromedriver or args.scrape:
+        if check_chromedriver():
+            logging.info("ChromeDriver is available.")
+        else:
+            logging.warning("ChromeDriver is not available.")
+            if args.scrape:
+                logging.error("Cannot run the scraper without ChromeDriver.")
+                logging.info("Please run download_chromedriver.py to download ChromeDriver.")
+                return
+    
     # Run the scraper
     if args.scrape:
         logging.info("Starting the scraper...")
         start_time = time.time()
-        run_scraper()
+        success = run_scraper()
+        if not success:
+            logging.error("Scraper failed. Exiting.")
+            return
         elapsed_time = time.time() - start_time
         logging.info(f"Scraping completed in {elapsed_time:.2f} seconds ({elapsed_time/60:.2f} minutes)")
     
