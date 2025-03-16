@@ -1,1 +1,4 @@
 yoga_dataset/
+chromedriver/
+chromedriver.exe
+*.log
